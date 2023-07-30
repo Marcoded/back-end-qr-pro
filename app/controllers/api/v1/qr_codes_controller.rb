@@ -21,28 +21,42 @@ class Api::V1::QrCodesController < ApplicationController
       return render json: { error: "You've reached the QR Code limit" }, status: :unauthorized
     end
   
-    @qr_code = QrCode.new
+    @qr_code = QrCode.new(qr_code_params)
     @qr_code.clerk_user_id = clerk_user['id']
   
-    puts clerk_user[:id]
-    @qr_code.title = params[:title]
-    @qr_code.main_color = params[:main_color]
-    @qr_code.target_url = params[:target_url]
-    @qr_code.save
-  
     if @qr_code.save
-      #render json: @qr_code.qr_code_data, status: :created
+
       render json: @qr_code, status: :created
     else
       render json: @qr_code.errors, status: :unprocessable_entity
     end
   end
 
+
+    # PATCH/PUT /qr_codes/1
+    def update
+      @qr_code = QrCode.find(params[:id])
+      
+      # Checking if the user is the owner of the qr_code
+      return render json: { message: "You do not have permission to update this QR Code" }, status: :unauthorized unless @qr_code.clerk_user_id == clerk_user['id']
+        
+      if @qr_code.update(qr_code_params)
+        
+        render json: @qr_code, status: :ok
+      else
+        render json: { message: "Update failed", errors: @qr_code.errors.full_messages }, status: :unprocessable_entity
+      end
+    end
+
+
+
   def all_user_qr_codes
     @qr_codes = QrCode.where(clerk_user_id: clerk_user['id']).order(created_at: :desc)
     render json: @qr_codes.as_json(only: [:clerk_user_id, :title, :target_url,:qr_code_data,:created_at,:updated_at, :id])
   end
 
+
+  # Handle redirect from static unique_url to dynamic target_url
   def redirect
     random_server_url = request.original_url
     qr_code = QrCode.find_by(random_server_url: random_server_url)
@@ -55,19 +69,7 @@ class Api::V1::QrCodesController < ApplicationController
     end
   end
 
-  # PATCH/PUT /qr_codes/1
-  def update
-    @qr_code = QrCode.find(params[:id])
-    
-    # Checking if the user is the owner of the qr_code
-    return render json: { message: "You do not have permission to update this QR Code" }, status: :unauthorized unless @qr_code.clerk_user_id == clerk_user['id']
-      
-    if @qr_code.update(qr_code_params)
-      render json: @qr_code, status: :ok
-    else
-      render json: { message: "Update failed", errors: @qr_code.errors.full_messages }, status: :unprocessable_entity
-    end
-  end
+
 
   # DELETE /qr_codes/1
   def destroy
@@ -83,7 +85,7 @@ class Api::V1::QrCodesController < ApplicationController
   private
   
   def qr_code_params
-    params.require(:qr_code).permit(:title, :target_url, :qr_code_data, :main_color, :id)
+    params.require(:qr_code).permit(:title, :main_color, :target_url)
   end
 
   def authorize_request
