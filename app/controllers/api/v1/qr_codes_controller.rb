@@ -1,6 +1,8 @@
 class Api::V1::QrCodesController < ApplicationController
 
 
+  before_action :authorize_request
+
 
   # GET /qr_codes
   def index
@@ -92,7 +94,5 @@ class Api::V1::QrCodesController < ApplicationController
     return render json: { message: "You are not authorized" }, status: :unauthorized unless clerk_session.present?
   end
 
-  def check_usage(clerk_user_id)
-
-  end
+ 
 end

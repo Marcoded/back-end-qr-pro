@@ -10,7 +10,7 @@ class QrCode < ApplicationRecord
   def generate_unique_url
     return if self.random_server_url?
     random_number = SecureRandom.uuid
-    server_address = Rails.env.production? ? "https://your-production-url.com" : "http://localhost:3000"
+    server_address = Rails.env.production? ? "https://back-end-qr-code.fly.dev" : "http://localhost:3000"
     self.random_server_url = "#{server_address}/api/v1/redirect/#{random_number}"
   end
 
